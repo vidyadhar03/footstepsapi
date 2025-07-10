@@ -1,6 +1,7 @@
 import express from "express";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import prisma from "./lib/prisma";
 
 // Load environment variables
 dotenv.config();
@@ -72,12 +73,59 @@ app.get("/api/test-supabase", async (_req, res) => {
   }
 });
 
+// Prisma database test endpoint
+app.get("/api/test-prisma", async (_req, res) => {
+  try {
+    // Test database connection by counting UserProfile records
+    const userCount = await prisma.userProfile.count();
+    
+    // Test creating a sample record (and then delete it)
+    const testProfile = await prisma.userProfile.create({
+      data: {
+        authUserId: `test-${Date.now()}`,
+        name: "Test User",
+        origin: "Test Location",
+        styleTags: ["Testing"],
+        totalKm: 100.5,
+        totalCountries: 5,
+        earthRotations: 2
+      }
+    });
+
+    // Clean up - delete the test record
+    await prisma.userProfile.delete({
+      where: { id: testProfile.id }
+    });
+
+    return res.json({
+      success: true,
+      message: "Prisma connection successful",
+      details: {
+        totalUsers: userCount,
+        testRecordCreated: testProfile.id,
+        testRecordDeleted: true,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error("Prisma connection error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Prisma connection failed",
+      error: error instanceof Error ? error.message : "Unknown error",
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Health check endpoint
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    supabaseConfigured: !!(supabaseUrl && supabaseKey)
+    supabaseConfigured: !!(supabaseUrl && supabaseKey),
+    prismaConnected: true
   });
 });
 
