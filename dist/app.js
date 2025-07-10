@@ -6,14 +6,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const supabase_js_1 = require("@supabase/supabase-js");
 const dotenv_1 = __importDefault(require("dotenv"));
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const prisma_1 = __importDefault(require("./lib/prisma"));
 const auth_1 = require("./middleware/auth");
 const routes_1 = __importDefault(require("./routes"));
+const swagger_1 = __importDefault(require("./config/swagger"));
 // Load environment variables
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 // Middleware
 app.use(express_1.default.json());
+// Swagger Documentation
+app.use('/api/docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.default, {
+    explorer: true,
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Footsteps API Documentation',
+}));
+// API Documentation JSON endpoint
+app.get('/api/docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swagger_1.default);
+});
 // Routes
 app.use("/api", routes_1.default);
 // Initialize Supabase client
@@ -23,10 +36,60 @@ let supabase = null;
 if (supabaseUrl && supabaseKey) {
     supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
 }
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: Welcome message
+ *     description: Returns a welcome message for the API
+ *     tags: [General]
+ *     responses:
+ *       200:
+ *         description: Welcome message
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Hello from Express + TypeScript!"
+ */
 app.get("/", (_req, res) => {
     res.json({ message: "Hello from Express + TypeScript!" });
 });
-// Supabase connection test endpoint
+/**
+ * @swagger
+ * /api/test-supabase:
+ *   get:
+ *     summary: Test Supabase connection
+ *     description: Verifies that the API can connect to Supabase
+ *     tags: [Testing]
+ *     responses:
+ *       200:
+ *         description: Supabase connection successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     details:
+ *                       type: object
+ *                       properties:
+ *                         supabaseUrl:
+ *                           type: string
+ *                         connectionTest:
+ *                           type: string
+ *                           example: "passed"
+ *       500:
+ *         description: Supabase connection failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 app.get("/api/test-supabase", async (_req, res) => {
     try {
         // Check if environment variables are set
@@ -71,7 +134,39 @@ app.get("/api/test-supabase", async (_req, res) => {
         });
     }
 });
-// Prisma database test endpoint
+/**
+ * @swagger
+ * /api/test-prisma:
+ *   get:
+ *     summary: Test Prisma database connection
+ *     description: Verifies that the API can connect to the database via Prisma
+ *     tags: [Testing]
+ *     responses:
+ *       200:
+ *         description: Prisma connection successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     details:
+ *                       type: object
+ *                       properties:
+ *                         totalUsers:
+ *                           type: integer
+ *                         testRecordCreated:
+ *                           type: string
+ *                         testRecordDeleted:
+ *                           type: boolean
+ *       500:
+ *         description: Prisma connection failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 app.get("/api/test-prisma", async (_req, res) => {
     try {
         // Test database connection by counting UserProfile records
@@ -113,7 +208,41 @@ app.get("/api/test-prisma", async (_req, res) => {
         });
     }
 });
-// Test authentication endpoint (protected)
+/**
+ * @swagger
+ * /api/test-auth:
+ *   get:
+ *     summary: Test JWT authentication
+ *     description: Protected endpoint to test JWT token validation
+ *     tags: [Testing]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Authentication successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         uid:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         role:
+ *                           type: string
+ *       401:
+ *         description: Authentication failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 app.get("/api/test-auth", auth_1.authenticateJWT, async (req, res) => {
     try {
         // This route is protected - user must be authenticated
@@ -145,7 +274,37 @@ app.get("/api/test-auth", auth_1.authenticateJWT, async (req, res) => {
         });
     }
 });
-// Public endpoint with optional authentication
+/**
+ * @swagger
+ * /api/public-data:
+ *   get:
+ *     summary: Public endpoint with optional authentication
+ *     description: Demonstrates optional authentication - works with or without JWT token
+ *     tags: [Testing]
+ *     security:
+ *       - BearerAuth: []
+ *       - {}
+ *     responses:
+ *       200:
+ *         description: Public data retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     authenticated:
+ *                       type: boolean
+ *                     user:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         uid:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ */
 app.get("/api/public-data", auth_1.optionalAuthenticateJWT, async (req, res) => {
     try {
         const user = req.user; // May be undefined if not authenticated
@@ -166,7 +325,32 @@ app.get("/api/public-data", auth_1.optionalAuthenticateJWT, async (req, res) => 
         });
     }
 });
-// Health check endpoint
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Health check
+ *     description: Returns the current health status of the API
+ *     tags: [General]
+ *     responses:
+ *       200:
+ *         description: API health status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "ok"
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 supabaseConfigured:
+ *                   type: boolean
+ *                 prismaConnected:
+ *                   type: boolean
+ */
 app.get("/api/health", (_req, res) => {
     res.json({
         status: "ok",
