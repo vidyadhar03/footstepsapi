@@ -7,11 +7,15 @@ const express_1 = __importDefault(require("express"));
 const supabase_js_1 = require("@supabase/supabase-js");
 const dotenv_1 = __importDefault(require("dotenv"));
 const prisma_1 = __importDefault(require("./lib/prisma"));
+const auth_1 = require("./middleware/auth");
+const routes_1 = __importDefault(require("./routes"));
 // Load environment variables
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 // Middleware
 app.use(express_1.default.json());
+// Routes
+app.use("/api", routes_1.default);
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY; // or SUPABASE_SERVICE_ROLE_KEY for service role
@@ -105,6 +109,59 @@ app.get("/api/test-prisma", async (_req, res) => {
             success: false,
             message: "Prisma connection failed",
             error: error instanceof Error ? error.message : "Unknown error",
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+// Test authentication endpoint (protected)
+app.get("/api/test-auth", auth_1.authenticateJWT, async (req, res) => {
+    try {
+        // This route is protected - user must be authenticated
+        const user = req.user;
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "User not authenticated",
+                timestamp: new Date().toISOString()
+            });
+        }
+        return res.json({
+            success: true,
+            message: "Authentication successful",
+            user: {
+                uid: user.uid,
+                email: user.email,
+                role: user.role
+            },
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error("Test auth error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+// Public endpoint with optional authentication
+app.get("/api/public-data", auth_1.optionalAuthenticateJWT, async (req, res) => {
+    try {
+        const user = req.user; // May be undefined if not authenticated
+        return res.json({
+            success: true,
+            message: "Public data endpoint",
+            authenticated: !!user,
+            user: user ? { uid: user.uid, email: user.email } : null,
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error("Public data error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
             timestamp: new Date().toISOString()
         });
     }

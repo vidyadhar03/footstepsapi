@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import prisma from "./lib/prisma";
 import { authenticateJWT, optionalAuthenticateJWT } from "./middleware/auth";
 import { AuthenticatedRequest } from "./types/auth";
+import apiRoutes from "./routes";
 
 // Load environment variables
 dotenv.config();
@@ -12,6 +13,9 @@ const app = express();
 
 // Middleware
 app.use(express.json());
+
+// Routes
+app.use("/api", apiRoutes);
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -156,47 +160,7 @@ app.get("/api/test-auth", authenticateJWT, async (req: AuthenticatedRequest, res
   }
 });
 
-// Get current user profile (protected)
-app.get("/api/user/profile", authenticateJWT, async (req: AuthenticatedRequest, res) => {
-  try {
-    const user = req.user;
-    
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User not authenticated",
-        timestamp: new Date().toISOString()
-      });
-    }
-    
-    // Find user profile by authUserId
-    const userProfile = await prisma.userProfile.findUnique({
-      where: { authUserId: user.uid }
-    });
 
-    if (!userProfile) {
-      return res.status(404).json({
-        success: false,
-        message: "User profile not found",
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    return res.json({
-      success: true,
-      data: userProfile,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error("Get user profile error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      timestamp: new Date().toISOString()
-    });
-  }
-});
 
 // Public endpoint with optional authentication
 app.get("/api/public-data", optionalAuthenticateJWT, async (req: AuthenticatedRequest, res) => {
