@@ -6,9 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --watch src --exec ts-node src/server.ts",
-    "build": "tsc",
+    "build": "npx prisma generate && tsc",
     "start": "node dist/server.js",
-    "vercel-build": "echo 'No build step required for Vercel'",
+    "vercel-build": "npx prisma generate",
     "postinstall": "npm run build"
   },
   "keywords": [],
