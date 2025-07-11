@@ -5,11 +5,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const app_1 = __importDefault(require("./app"));
 const port = process.env.PORT ? +process.env.PORT : 3000;
-// Only start the server if we're not in a serverless environment
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-    app_1.default.listen(port, () => {
-        console.log(`🚀 Server listening on http://localhost:${port}`);
-    });
-}
+const nodeEnv = process.env.NODE_ENV || 'development';
+console.log(`Environment: ${nodeEnv}`);
+// Start the server for local development
+app_1.default.listen(port, () => {
+    console.log(`🚀 Server listening on http://localhost:${port}`);
+    console.log(`Environment: ${nodeEnv}`);
+});
 // Export the app for serverless environments (like Vercel)
 exports.default = app_1.default;

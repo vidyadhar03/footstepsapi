@@ -85,25 +85,21 @@ app.get("/api/test-supabase", async (_req, res) => {
 
 app.get("/api/test-prisma", async (_req, res) => {
   try {
-    // Test database connection by counting UserProfile records
-    const userCount = await prisma.userProfile.count();
+    // Test database connection by counting User records
+    const userCount = await prisma.user.count();
     
     // Test creating a sample record (and then delete it)
-    const testProfile = await prisma.userProfile.create({
+    const testUser = await prisma.user.create({
       data: {
         authUserId: `test-${Date.now()}`,
         name: "Test User",
-        origin: "Test Location",
-        styleTags: ["Testing"],
-        totalKm: 100.5,
-        totalCountries: 5,
-        earthRotations: 2
+        email: "test@example.com"
       }
     });
 
     // Clean up - delete the test record
-    await prisma.userProfile.delete({
-      where: { id: testProfile.id }
+    await prisma.user.delete({
+      where: { id: testUser.id }
     });
 
     return res.json({
@@ -111,7 +107,7 @@ app.get("/api/test-prisma", async (_req, res) => {
       message: "Prisma connection successful",
       details: {
         totalUsers: userCount,
-        testRecordCreated: testProfile.id,
+        testRecordCreated: testUser.id,
         testRecordDeleted: true,
         timestamp: new Date().toISOString()
       }

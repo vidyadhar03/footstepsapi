@@ -166,6 +166,7 @@ app.get("/api/health", (_req, res) => {
     res.json({
         status: "ok",
         timestamp: new Date().toISOString(),
+        nodeEnv: process.env.NODE_ENV || 'not set',
         supabaseConfigured: !!(supabaseUrl && supabaseKey),
         prismaConnected: true
     });
